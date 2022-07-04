@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% load static %}
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <link crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" rel="stylesheet"/>
+    <script crossorigin="anonymous"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js">
+    </script>
+    <link href="http://fonts.googleapis.com/css?family=Ubuntu:regular,bold&subset=Latin" rel="stylesheet"
+          type="text/css">
+    <style>
+    body {
+        /*font-family: 'Liberation Sans', sans-serif;*/
+    }
+
+    h5 {
+        font-size: 25px;
+    }
+
+    label, span {
+        font-size: 20px
+    }
+
+    .main-heading {
+        font-weight: bold;
+        color: white;
+        margin-left:0%;
+    }
+
+    a {
+        font-weight: bold;
+        font-size: larger;
+        text-decoration: none;
+    }
+
+    .search-form {
+        width: 20%;
+    }
+
+    .search-results {
+        margin-left: 10%;
+    }
+
+    </style>
+    <title>{{type | title}} Search</title>
+</head>
+
+<body>
+<div class="d-flex flex-column navbar navbar-expand bg-dark">
+    <h1 class="main-heading">Search for {{ type }}s</h1>
+    <div class="d-flex flex-row w-100 m-2">
+        <a class="text-light btn border-light m-3" href="../"><span>Home</span></a>
+        <a class="text-light btn border-light ms-auto m-3" href="#"><span>About Us</span></a>
+        {% comment %} <a class="text-light btn border-light m-3" href="#"><span>Company Support</span></a> {% endcomment %}
+        {% if user.is_authenticated %}
+        <div class="btn-group m-3">
+            <button aria-expanded="false" class="btn btn-success border-light text-light dropdown-toggle"
+                    data-bs-toggle="dropdown"
+                    type="button">
+                <img width="30px" height="30px" src="{% static 'img/icons/person.svg' %}">
+                <span>{{ user.username }} </span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="../logout"><span>Logout</span></a></li>
+                <li><a class="dropdown-item" href="../favourites"><span>Favourites</span></a></li>
+            </ul>
+        </div>
+        {% else %}
+        <a class="text-light btn border-light m-3" href="../login"><span>Login</span></a>
+        {% endif %}
+    </div>
+</div>
+<div class="d-flex w-100">
+    <form action="../search_vehicle" class="search-form">
+        <input name="type" style="visibility: hidden" value="{{ type }}">
+        <div class="d-flex flex-column m-5">
+            <h5 class="m-2">Company:</h5>
+            <select class="form-control form-select m-2" name="company_name_id">
+                <option value="">Any</option>
+                {% for x in company_list %}
+                {% if x == company_name_id %}
+                <option selected value="{{ x }}">{{ x }}</option>
+                {% else %}
+                <option value="{{ x }}">{{x}}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            <h5 class="m-2"> Name: </h5>
+            <input class="m-2 form-control" placeholder="Enter any known part of the bike name" name="name" type="text">
+            <h5 class="m-2">Sort by: </h5>
+            {% for x, y in sort_crit.items %}
+            <div class="m-2">
+                {% if y == sort_by %}
+                <input checked class="form-check-input" id="sort_by_{{ y }}" name="sort_by" type="radio"
+                       value="{{ y }}">
+                {% else %}
+                <input class="form-check-input" id="sort_by_{{ y }}" name="sort_by" type="radio" value="{{ y }}">
+                {% endif %}
+                <label class="form-check-label" for="sort_by_{{ y }}">
+                    {{ x }}
+                </label>
+            </div>
+            {% endfor %}
+            <h5 class="m-2">Starting price:</h5>
+            <input class="m-2 form-range" max="200000000" min="0" name="start_price"
+                   onchange="this.nextElementSibling.textContent = this.value" step="1000" type="range"
+                   value="{{ start_price }}">
+            <label class="m-2 text-dark">{{ start_price }}</label>
+            <h5 class="m-2">Ending price:</h5>
+            <input class="m-2 form-range" max="200000000" min="0" name="end_price"
+                   oninput="this.nextElementSibling.textContent = this.value" step="1000" type="range"
+                   value="{{ end_price }}">
+            <label class="m-2 text-dark"> {{ end_price }} </label>
+            <button class="btn btn-success" type="submit">
+            <span>Submit</span>
+            </button>
+        </div>
+    </form>
+    <div class="d-flex flex-column search-results w-50">
+        {% for item in data %}
+        <div class="d-flex flex-row mt-5 shadow card gap-2">
+            <img style="width:20%" src="{{ item.img_src }}">
+            <div class="d-flex flex-column m-2 w-50">
+                <a href="../vehicle?type={{type}}&vehicle_id={{item.vehicle_id}}"> {{ item.name }} </a>
+                <span class="price"><strong>Price: ~{{ item.price }}</strong></span>
+                <span>Mileage: {% if item.mileage %} {{item.mileage}}
+            {% else %} - {% endif %}kmpl</span>
+            </div>
+            <h4 class="mx-auto my-auto">{{item.rating}}</h4>
+        </div>
+        {% endfor %}
+        {% if data.has_other_pages %}
+        <ul class="mx-auto pagination gap-2 m-5">
+            {% if data.has_previous %}
+            <li class="page-item"><a class="page-link"
+                                     href="?page={{ data.previous_page_number }}&type={{ type }}&company_name_id={{ company_name_id }}&name={{ name }}&sort_by={{ sort_by }}&start_price={{ start_price }}&end_price={{ end_price }}">&laquo;</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span>&laquo;</span></li>
+            {% endif %}
+            {% for i in data.paginator.page_range %}
+            {% if data.number == i %}
+            <li class="page-item active">
+                <span>{{ i }}</span>
+            </li>
+            {% else %}
+            <li><a class="page-link"
+                   href="?page={{ i }}&type={{ type }}&company_name_id={{ company_name_id }}&name={{ name }}&sort_by={{ sort_by }}&start_price={{ start_price }}&end_price={{ end_price }}">{{ i }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            {% if data.has_next %}
+            <li><a class="page-link"
+                   href="?page={{ data.next_page_number }}&type={{ type }}&company_name_id={{ company_name_id }}&name={{ name }}&sort_by={{ sort_by }}&start_price={{ start_price }}&end_price={{ end_price }}">&raquo;</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span>&raquo;</span></li>
+            {% endif %}
+        </ul>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>
